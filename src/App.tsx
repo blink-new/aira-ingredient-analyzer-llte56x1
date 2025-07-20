@@ -1,304 +1,152 @@
-import React, { useState, useEffect } from 'react';
-import Header from './components/Header';
-import IngredientAnalyzer from './components/IngredientAnalyzer';
-import AnalysisResults from './components/AnalysisResults';
-import AlternativeProducts from './components/AlternativeProducts';
-import ProfilePage from './components/ProfilePage';
-import UploadPage from './components/UploadPage';
+import React, { useState } from 'react'
+import { Sparkles, Shield, Leaf, AlertTriangle } from 'lucide-react'
+import IngredientAnalyzer from './components/IngredientAnalyzer'
+import AnalysisResults from './components/AnalysisResults'
+import AlternativeProducts from './components/AlternativeProducts'
 
-export interface IngredientResult {
-  name: string;
-  description: string;
-  flags: string[];
-  link?: string;
-  rawData?: any;
-}
-
-export interface ProductMetadata {
-  brand?: string;
-  product?: string;
-  image?: string;
-  url?: string;
-}
-
-export interface UserPreferences {
-  watchlist?: string[];
-  flagPreferences?: {
-    microplastics: boolean;
-    comedogenic: boolean;
-    irritant: boolean;
-    endocrine: boolean;
-    euBanned: boolean;
-    cancer: boolean;
-    penetration: boolean;
-  };
+interface AnalysisResult {
+  ingredient: string
+  safetyLevel: 'safe' | 'caution' | 'harmful'
+  concerns: string[]
+  description: string
 }
 
 function App() {
-  const [currentPage, setCurrentPage] = useState<'main' | 'profile' | 'upload'>('main');
-  const [analysisResults, setAnalysisResults] = useState<IngredientResult[]>([]);
-  const [productMetadata, setProductMetadata] = useState<ProductMetadata | null>(null);
-  const [userPreferences, setUserPreferences] = useState<UserPreferences>({
-    watchlist: [],
-    flagPreferences: {
-      microplastics: true,
-      comedogenic: true,
-      irritant: true,
-      endocrine: true,
-      euBanned: true,
-      cancer: true,
-      penetration: true,
-    }
-  });
-  const [showRecommendations, setShowRecommendations] = useState(false);
+  const [analysisResults, setAnalysisResults] = useState<AnalysisResult[]>([])
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
 
-  // Mock ingredient database for demo
-  const mockIngredientData = [
-    {
-      ingredient: "Sodium Lauryl Sulfate",
-      description: "A surfactant that can be irritating to sensitive skin",
-      flags: ["Irritant"],
-      microplastics: "no",
-      comedogenic: "no",
-      irritant: "yes",
-      endocrine_disruptor: "no",
-      eu_banned: "no",
-      cancer_risk: "no",
-      penetration_enhancer: "no"
-    },
-    {
-      ingredient: "Parabens",
-      description: "Preservatives that may disrupt hormones",
-      flags: ["Endocrine Disruptor"],
-      microplastics: "no",
-      comedogenic: "no",
-      irritant: "maybe",
-      endocrine_disruptor: "yes",
-      eu_banned: "no",
-      cancer_risk: "maybe",
-      penetration_enhancer: "no"
-    },
-    {
-      ingredient: "Coconut Oil",
-      description: "Natural moisturizer, but can clog pores for some people",
-      flags: ["Comedogenic"],
-      microplastics: "no",
-      comedogenic: "yes",
-      irritant: "no",
-      endocrine_disruptor: "no",
-      eu_banned: "no",
-      cancer_risk: "no",
-      penetration_enhancer: "no"
-    },
-    {
-      ingredient: "Polyethylene",
-      description: "Plastic polymer used as a thickener, contains microplastics",
-      flags: ["Microplastic"],
-      microplastics: "yes",
-      comedogenic: "no",
-      irritant: "no",
-      endocrine_disruptor: "no",
-      eu_banned: "no",
-      cancer_risk: "no",
-      penetration_enhancer: "no"
-    },
-    {
-      ingredient: "Formaldehyde",
-      description: "Preservative with potential carcinogenic properties",
-      flags: ["Carcinogen", "EU Banned"],
-      microplastics: "no",
-      comedogenic: "no",
-      irritant: "yes",
-      endocrine_disruptor: "no",
-      eu_banned: "yes",
-      cancer_risk: "yes",
-      penetration_enhancer: "no"
-    }
-  ];
-
-  const normalizeIngredientName = (name: string): string => {
-    if (!name) return "";
-    let norm = name.replace(/\s*\([^)]*\)\s*/g, " ").trim().replace(/\s+/g, " ");
-    if (norm.includes("/")) norm = norm.split("/")[0].trim();
-    return norm.toLowerCase().replace(/\s+/g, " ");
-  };
-
-  const getDefaultFlags = (match: any): string[] => {
-    const flags: string[] = [];
-    const FLAG_MAP = {
-      microplastics: "Microplastic",
-      comedogenic: "Comedogenic",
-      irritant: "Irritant",
-      endocrine_disruptor: "Endocrine Disruptor",
-      eu_banned: "EU Banned",
-      cancer_risk: "Carcinogen",
-      penetration_enhancer: "Penetration Enhancer"
-    };
-
-    for (const [key, icon] of Object.entries(FLAG_MAP)) {
-      if (match[key]?.trim().toLowerCase() === "yes") flags.push(icon);
-      else if (match[key]?.trim().toLowerCase() === "maybe") flags.push(`Possible ${icon}`);
-    }
-    return flags;
-  };
-
-  const processIngredients = async (ingredients: string[]) => {
-    const results = await Promise.all(
-      ingredients.map(async (rawInput) => {
-        const normInput = normalizeIngredientName(rawInput);
-        
-        // Special case: Water
-        if (/\bwater\b|\baqua\b|\beau\b/.test(normInput)) {
-          return {
-            name: "Water",
-            description: "Universal solvent; generally safe.",
-            flags: []
-          };
+  const handleAnalysis = async (ingredients: string) => {
+    setIsAnalyzing(true)
+    
+    // Simulate API call delay
+    await new Promise(resolve => setTimeout(resolve, 2000))
+    
+    // Mock analysis results
+    const ingredientList = ingredients.split(',').map(i => i.trim()).filter(i => i)
+    const results: AnalysisResult[] = ingredientList.map(ingredient => {
+      const mockResults = {
+        'sodium lauryl sulfate': {
+          safetyLevel: 'harmful' as const,
+          concerns: ['Irritant', 'Comedogenic'],
+          description: 'A harsh surfactant that can strip natural oils and cause irritation.'
+        },
+        'parabens': {
+          safetyLevel: 'harmful' as const,
+          concerns: ['Endocrine Disruptor', 'Preservative'],
+          description: 'Synthetic preservatives linked to hormone disruption.'
+        },
+        'coconut oil': {
+          safetyLevel: 'safe' as const,
+          concerns: [],
+          description: 'Natural moisturizing oil with antimicrobial properties.'
+        },
+        'hyaluronic acid': {
+          safetyLevel: 'safe' as const,
+          concerns: [],
+          description: 'Powerful humectant that holds up to 1000x its weight in water.'
+        },
+        'fragrance': {
+          safetyLevel: 'caution' as const,
+          concerns: ['Potential Allergen'],
+          description: 'Generic term that may contain undisclosed allergens.'
         }
-
-        // Find match in mock data
-        const match = mockIngredientData.find(entry => 
-          normalizeIngredientName(entry.ingredient) === normInput
-        );
-
-        if (match) {
-          const flags = getDefaultFlags(match);
-          
-          // Add watchlist flag if applicable
-          if (userPreferences.watchlist?.includes(normInput)) {
-            flags.push("⭐ On Your Watchlist");
-          }
-
-          return {
-            name: match.ingredient,
-            description: match.description,
-            flags,
-            rawData: match
-          };
-        }
-
-        // Check watchlist for unknown ingredients
-        const watchlistFlags = [];
-        if (userPreferences.watchlist?.includes(normInput)) {
-          watchlistFlags.push("⭐ On Your Watchlist");
-        }
-
+      }
+      
+      const lowerIngredient = ingredient.toLowerCase()
+      const match = Object.keys(mockResults).find(key => 
+        lowerIngredient.includes(key) || key.includes(lowerIngredient)
+      )
+      
+      if (match) {
         return {
-          name: rawInput,
-          description: "Not yet rated by aira.",
-          flags: watchlistFlags
-        };
-      })
-    );
-
-    setAnalysisResults(results);
-    setShowRecommendations(true);
-  };
-
-  const handleSearch = (query: string) => {
-    console.log('Searching for:', query);
-    // Implement search functionality
-  };
-
-  const handleCameraUpload = () => {
-    setCurrentPage('upload');
-  };
-
-  const handleProfileClick = () => {
-    setCurrentPage('profile');
-  };
-
-  const handleBackToMain = () => {
-    setCurrentPage('main');
-  };
-
-  const handleImageAnalysis = (extractedText: string, metadata: ProductMetadata) => {
-    setProductMetadata(metadata);
+          ingredient,
+          ...mockResults[match as keyof typeof mockResults]
+        }
+      }
+      
+      return {
+        ingredient,
+        safetyLevel: 'safe' as const,
+        concerns: [],
+        description: 'No known safety concerns identified.'
+      }
+    })
     
-    // Process extracted text into ingredients
-    const cleanLines = extractedText
-      .split(/\n+/)
-      .filter(line => !line.includes(":") && !line.trim().startsWith("-"));
-    
-    const ingredients = cleanLines
-      .join(" ")
-      .split(/[,;•]+/)
-      .map(s => s.trim())
-      .filter((value, index, self) => value && self.indexOf(value) === index);
-
-    if (ingredients.length > 0) {
-      processIngredients(ingredients);
-    }
-    
-    setCurrentPage('main');
-  };
-
-  const handlePreferencesUpdate = (newPreferences: UserPreferences) => {
-    setUserPreferences(newPreferences);
-  };
-
-  if (currentPage === 'profile') {
-    return (
-      <ProfilePage
-        userPreferences={userPreferences}
-        onPreferencesUpdate={handlePreferencesUpdate}
-        onBack={handleBackToMain}
-      />
-    );
-  }
-
-  if (currentPage === 'upload') {
-    return (
-      <UploadPage
-        onImageAnalysis={handleImageAnalysis}
-        onBack={handleBackToMain}
-      />
-    );
+    setAnalysisResults(results)
+    setIsAnalyzing(false)
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      <Header
-        onSearch={handleSearch}
-        onCameraUpload={handleCameraUpload}
-        onProfileClick={handleProfileClick}
-      />
-      
-      {showRecommendations && (
-        <AlternativeProducts />
-      )}
-      
-      <div className="container">
-        {productMetadata && (
-          <div className="flex items-center justify-between mb-4 border-b border-gray-200 pb-2">
-            <div className="flex items-center">
-              {productMetadata.image && (
-                <img 
-                  src={productMetadata.image} 
-                  alt="Product" 
-                  className="h-15 w-15 object-cover rounded-lg mr-3"
-                />
-              )}
-              <div>
-                {productMetadata.brand && (
-                  <div className="font-bold text-gray-900">{productMetadata.brand}</div>
-                )}
-                {productMetadata.product && (
-                  <div className="text-sm text-gray-600">{productMetadata.product}</div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      {/* Floating background elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 left-20 w-32 h-32 bg-gradient-to-r from-indigo-400/20 to-purple-400/20 rounded-full blur-xl float-animation"></div>
+        <div className="absolute top-40 right-32 w-24 h-24 bg-gradient-to-r from-amber-400/20 to-orange-400/20 rounded-full blur-xl float-animation" style={{ animationDelay: '2s' }}></div>
+        <div className="absolute bottom-32 left-1/3 w-40 h-40 bg-gradient-to-r from-emerald-400/20 to-teal-400/20 rounded-full blur-xl float-animation" style={{ animationDelay: '4s' }}></div>
+      </div>
 
-        {analysisResults.length > 0 ? (
-          <AnalysisResults results={analysisResults} />
-        ) : (
-          <IngredientAnalyzer onAnalyze={processIngredients} />
-        )}
+      <div className="relative z-10 container mx-auto px-4 py-8 max-w-4xl">
+        {/* Header */}
+        <div className="text-center mb-12">
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <div className="p-3 glass-card rounded-2xl">
+              <Sparkles className="w-8 h-8 text-indigo-600" />
+            </div>
+            <h1 className="text-5xl font-bold gradient-text">Aira</h1>
+          </div>
+          <p className="text-xl text-slate-600 font-medium">
+            Ingredient Safety Analyzer
+          </p>
+          <p className="text-slate-500 mt-2 max-w-2xl mx-auto">
+            Analyze product ingredients for harmful substances like microplastics, 
+            comedogenic compounds, irritants, and endocrine disruptors.
+          </p>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+          <div className="glass-card rounded-2xl p-6 hover-lift">
+            <div className="flex items-center gap-3 mb-2">
+              <Shield className="w-6 h-6 text-emerald-500" />
+              <span className="font-semibold text-slate-700">Safe Ingredients</span>
+            </div>
+            <p className="text-2xl font-bold text-emerald-600">2,847</p>
+            <p className="text-sm text-slate-500">Verified as safe</p>
+          </div>
+          
+          <div className="glass-card rounded-2xl p-6 hover-lift">
+            <div className="flex items-center gap-3 mb-2">
+              <AlertTriangle className="w-6 h-6 text-amber-500" />
+              <span className="font-semibold text-slate-700">Flagged Items</span>
+            </div>
+            <p className="text-2xl font-bold text-amber-600">1,203</p>
+            <p className="text-sm text-slate-500">Require caution</p>
+          </div>
+          
+          <div className="glass-card rounded-2xl p-6 hover-lift">
+            <div className="flex items-center gap-3 mb-2">
+              <Leaf className="w-6 h-6 text-indigo-500" />
+              <span className="font-semibold text-slate-700">Alternatives</span>
+            </div>
+            <p className="text-2xl font-bold text-indigo-600">5,692</p>
+            <p className="text-sm text-slate-500">Safer options</p>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="space-y-8">
+          <IngredientAnalyzer onAnalyze={handleAnalysis} isAnalyzing={isAnalyzing} />
+          
+          {analysisResults.length > 0 && (
+            <>
+              <AnalysisResults results={analysisResults} />
+              <AlternativeProducts />
+            </>
+          )}
+        </div>
       </div>
     </div>
-  );
+  )
 }
 
-export default App;
+export default App
